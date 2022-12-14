@@ -21,12 +21,25 @@ public final class StressTestConfig {
     public final String password;
     public final int maxPoolSize;
 
-    // see pg-configs/sync-replica/postgresql.conf (recovery_min_apply_delay)
+    /**
+     * See pg-configs/sync-replica/postgresql.conf (recovery_min_apply_delay)
+     */
     public final int syncReplicaDelayMs = 50;
 
-    public StressTestConfig(PgQueueBuffer buffer, int writerCount, int writerInnerDelayMs, int readerCount,
-                            int readerInnerDelayMs, int readerBatchSize, int durationSec, boolean longTxEnabled,
-                            String host, int port, String db, String username, String password, int maxPoolSize) {
+    public StressTestConfig(PgQueueBuffer buffer,
+                            int writerCount,
+                            int writerInnerDelayMs,
+                            int readerCount,
+                            int readerInnerDelayMs,
+                            int readerBatchSize,
+                            int durationSec,
+                            boolean longTxEnabled,
+                            String host,
+                            int port,
+                            String db,
+                            String username,
+                            String password,
+                            int maxPoolSize) {
         this.buffer = buffer;
         this.writerCount = writerCount;
         this.writerInnerDelayMs = writerInnerDelayMs;
@@ -86,11 +99,27 @@ public final class StressTestConfig {
         private String db = "pgqb_db"; // see docker-compose.yml (PG_DATABASE)
         private String username = "pgqb_user"; // see docker-compose.yml (PG_USER)
         private String password = "pgqb_password"; // see docker-compose.yml (PG_PASSWORD)
-        private int maxPoolSize = 500; // see pg-configs/primary/postgresql.conf (max_connections)
+        private int connectionPoolMaxSize = -1; // see pg-configs/primary/postgresql.conf (max_connections)
 
         public StressTestConfig build() {
-            return new StressTestConfig(buffer, writerCount, writerInnerDelayMs, readerCount, readerInnerDelayMs,
-                    readerBatchSize, durationSec, longTxEnabled, host, port, db, username, password, maxPoolSize);
+            return new StressTestConfig(
+                    buffer,
+                    writerCount,
+                    writerInnerDelayMs,
+                    readerCount,
+                    readerInnerDelayMs,
+                    readerBatchSize,
+                    durationSec,
+                    longTxEnabled,
+                    host,
+                    port,
+                    db,
+                    username,
+                    password,
+                    connectionPoolMaxSize > 0
+                            ? connectionPoolMaxSize
+                            : writerCount + readerCount
+            );
         }
 
         public Builder setPgQueueBuffer(PgQueueBuffer buffer) {
@@ -158,8 +187,11 @@ public final class StressTestConfig {
             return this;
         }
 
-        public Builder setMaxPoolSize(int maxPoolSize) {
-            this.maxPoolSize = maxPoolSize;
+        /**
+         * See pg-configs/primary/postgresql.conf (max_connections). Default is writerCount + readerCount.
+         */
+        public Builder setConnectionPoolMaxSize(int size) {
+            this.connectionPoolMaxSize = size;
             return this;
         }
     }
