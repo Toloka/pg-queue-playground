@@ -1,60 +1,35 @@
 services:
 
   pg-primary:
-    image: crunchydata/crunchy-postgres:centos8-13.4-4.7.2
+    image: bitnami/postgresql:latest
     ports:
       - 5432:5432
     depends_on:
       - pg-sync-replica
-    volumes:
-      - ./pg-configs/primary:/pgconf
     environment:
-      - MODE=postgres
-      - PG_MODE=primary
-      - PG_PRIMARY_USER=pgqb_primary_user
-      - PG_PRIMARY_PASSWORD=pgqb_primary_password
-      - PG_PRIMARY_PORT=5432
-      - SYNC_REPLICA=pgqb_sync_replica
-      - PG_DATABASE=pgqb_db
-      - PG_USER=pgqb_user
-      - PG_PASSWORD=pgqb_password
-      - PG_ROOT_PASSWORD=pgqb_root_password
+      - POSTGRESQL_REPLICATION_MODE=master
+      - POSTGRESQL_REPLICATION_USER=pgqp_primary_user
+      - POSTGRESQL_REPLICATION_PASSWORD=pgqp_primary_password
+      - POSTGRESQL_DATABASE=pgqp_db
+      - POSTGRESQL_USERNAME=pgqp_user
+      - POSTGRESQL_PASSWORD=pgqp_password
+      - POSTGRESQL_MAX_CONNECTIONS=500
+      - POSTGRESQL_SYNCHRONOUS_COMMIT_MODE=remote_apply
+      - POSTGRESQL_NUM_SYNCHRONOUS_REPLICAS=1
 
   pg-sync-replica:
-    image: crunchydata/crunchy-postgres:centos8-13.4-4.7.2
+    image: bitnami/postgresql:latest
     ports:
       - 6543:5432
     volumes:
-      - ./pg-configs/sync-replica:/pgconf
+      - ./pg-configs/sync-replica/conf:/opt/bitnami/postgresql/conf
     environment:
-      - MODE=postgres
-      - PG_MODE=replica
-      - PG_PRIMARY_USER=pgqb_primary_user
-      - PG_PRIMARY_PASSWORD=pgqb_primary_password
-      - PG_PRIMARY_HOST=pg-primary
-      - PG_PRIMARY_PORT=5432
-      - SYNC_REPLICA=pgqb_sync_replica
-      - PG_DATABASE=pgqb_db
-      - PG_USER=pgqb_user
-      - PG_PASSWORD=pgqb_password
-      - PG_ROOT_PASSWORD=pgqb_root_password
-
-  pg-async-replica:
-    image: crunchydata/crunchy-postgres:centos8-13.4-4.7.2
-    ports:
-      - 7654:5432
-    depends_on:
-      - pg-primary
-    volumes:
-      - ./pg-configs/async-replica:/pgconf
-    environment:
-      - MODE=postgres
-      - PG_MODE=replica
-      - PG_PRIMARY_USER=pgqb_primary_user
-      - PG_PRIMARY_PASSWORD=pgqb_primary_password
-      - PG_PRIMARY_HOST=pg-primary
-      - PG_PRIMARY_PORT=5432
-      - PG_DATABASE=pgqb_db
-      - PG_USER=pgqb_user
-      - PG_PASSWORD=pgqb_password
-      - PG_ROOT_PASSWORD=pgqb_root_password
+      - POSTGRESQL_REPLICATION_MODE=slave
+      - POSTGRESQL_REPLICATION_USER=pgqp_primary_user
+      - POSTGRESQL_REPLICATION_PASSWORD=pgqp_primary_password
+      - POSTGRESQL_MASTER_HOST=pg-primary
+      - POSTGRESQL_MASTER_PORT_NUMBER=5432
+      - POSTGRESQL_DATABASE=pgqp_db
+      - POSTGRESQL_USERNAME=pgqp_user
+      - POSTGRESQL_PASSWORD=pgqp_password
+      - POSTGRESQL_MAX_CONNECTIONS=500

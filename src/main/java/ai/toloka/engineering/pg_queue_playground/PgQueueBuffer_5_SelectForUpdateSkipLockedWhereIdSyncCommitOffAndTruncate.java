@@ -182,12 +182,11 @@ public class PgQueueBuffer_5_SelectForUpdateSkipLockedWhereIdSyncCommitOffAndTru
             }
         });
 
+        consumer.accept(events);
+
         if (events.isEmpty()) {
             return;
         }
-
-        consumer.accept(events);
-
         String params = events.stream().map(e -> "?").collect(Collectors.joining(","));
         sql = "delete from queue_buffer_" + tableKey + " where id in (" + params + ")";
         txManager.execute(sql, (TransactionManager.PreparedStatementConsumer) ps -> {

@@ -5,3 +5,5 @@
 build
 
 .idea
+
+pg-configs/sync-replica/conf/pg_hba.conf

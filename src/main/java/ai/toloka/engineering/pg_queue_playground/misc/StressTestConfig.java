@@ -22,9 +22,9 @@ public final class StressTestConfig {
     public final int maxPoolSize;
 
     /**
-     * See pg-configs/sync-replica/postgresql.conf (recovery_min_apply_delay)
+     * See recovery_min_apply_delay in pg-configs/sync-replica/conf/postgresql.conf
      */
-    public final int syncReplicaDelayMs = 50;
+    public final int syncReplicaDelayMs = 10;
 
     public StressTestConfig(PgQueueBuffer buffer,
                             int writerCount,
@@ -96,9 +96,9 @@ public final class StressTestConfig {
 
         private String host = "localhost";
         private int port = 5432; // see pg-configs/primary/postgresql.conf (port)
-        private String db = "pgqb_db"; // see docker-compose.yml (PG_DATABASE)
-        private String username = "pgqb_user"; // see docker-compose.yml (PG_USER)
-        private String password = "pgqb_password"; // see docker-compose.yml (PG_PASSWORD)
+        private String db = "pgqp_db"; // see docker-compose.yml (POSTGRESQL_DATABASE)
+        private String username = "pgqp_user"; // see docker-compose.yml (POSTGRESQL_USERNAME)
+        private String password = "pgqp_password"; // see docker-compose.yml (POSTGRESQL_PASSWORD)
         private int connectionPoolMaxSize = -1; // see pg-configs/primary/postgresql.conf (max_connections)
 
         public StressTestConfig build() {

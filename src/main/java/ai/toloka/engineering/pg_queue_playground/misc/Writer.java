@@ -11,18 +11,17 @@ public class Writer extends AbstractReaderWriter {
     private static int counter = 1;
 
     private final PgQueueBuffer buffer;
-    private final TransactionManager txManager;
-
     private final int innerDelayMs;
     private final int syncReplicaDelayMs;
 
-    public Writer(PgQueueBuffer buffer, TransactionManager txManager, CyclicBarrier barrier, int innerDelayMs,
+    public Writer(PgQueueBuffer buffer,
+                  TransactionManager txManager,
+                  CyclicBarrier barrier,
+                  int innerDelayMs,
                   int syncReplicaDelayMs) {
-        super("writer-" + counter, barrier);
+        super("writer-" + counter, txManager, barrier);
 
         this.buffer = buffer;
-        this.txManager = txManager;
-
         this.innerDelayMs = innerDelayMs;
         this.syncReplicaDelayMs = syncReplicaDelayMs;
 

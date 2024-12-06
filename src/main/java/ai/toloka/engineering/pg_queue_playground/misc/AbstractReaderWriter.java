@@ -12,21 +12,27 @@ public abstract class AbstractReaderWriter implements Runnable {
 
     protected final String name;
 
+    protected final TransactionManager txManager;
     private final CyclicBarrier barrier;
 
     private volatile boolean enabled = true;
 
     private long deltaSum;
     private long countSum;
+    private long logCount;
 
-    protected AbstractReaderWriter(String name, CyclicBarrier barrier) {
+    protected AbstractReaderWriter(String name,
+                                   TransactionManager txManager,
+                                   CyclicBarrier barrier) {
         this.name = name;
+        this.txManager = txManager;
         this.barrier = barrier;
     }
 
     @Override
     public void run() {
         try {
+            warmUp();
             barrier.await();
         } catch (InterruptedException | BrokenBarrierException e) {
             logger.error("Unexpected exception", e);
@@ -42,6 +48,11 @@ public abstract class AbstractReaderWriter implements Runnable {
         }
     }
 
+    private void warmUp() {
+        txManager.begin();
+        txManager.commit();
+    }
+
     protected abstract void runInner();
 
     public void stop() {
@@ -51,15 +62,17 @@ public abstract class AbstractReaderWriter implements Runnable {
     protected synchronized void logStat(long deltaNanos, int count) {
         deltaSum += deltaNanos;
         countSum += count;
+        logCount += 1;
     }
 
     public synchronized Stat getStatAndReset() {
-        Stat stat = new Stat(deltaSum, countSum);
+        var stat = new Stat(deltaSum, countSum, logCount);
         deltaSum = 0;
         countSum = 0;
+        logCount = 0;
         return stat;
     }
 
-    public record Stat(long deltaSum, long countSum) {
+    public record Stat(long deltaSum, long countSum, long logCount) {
     }
 }

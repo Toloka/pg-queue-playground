@@ -9,8 +9,8 @@ this problem.
 Requirements
 --------------
 
-- Java 17+
-- Docker (3 CPU, 3 GB RAM)
+- Java 21+
+- Docker (2 CPU, 2 GB RAM)
 
 Useful Links
 --------------
@@ -20,4 +20,4 @@ Useful Links
 
 License
 -------
-© YANDEX LLC, 2022. Licensed under the Apache License, Version 2.0. See LICENSE file for more details.
+© TOLOKA AI BV, 2024. Licensed under the Apache License, Version 2.0. See LICENSE file for more details.

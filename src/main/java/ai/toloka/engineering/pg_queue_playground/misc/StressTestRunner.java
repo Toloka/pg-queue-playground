@@ -2,8 +2,9 @@ package ai.toloka.engineering.pg_queue_playground.misc;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +34,7 @@ public class StressTestRunner {
     }
 
     private static HikariDataSource createDataSource(StressTestConfig config) {
-        HikariConfig dsConfig = new HikariConfig();
+        var dsConfig = new HikariConfig();
         dsConfig.setDataSourceClassName("org.postgresql.ds.PGSimpleDataSource");
         dsConfig.setUsername(config.username);
         dsConfig.setPassword(config.password);
@@ -45,7 +46,7 @@ public class StressTestRunner {
     }
 
     private static void runInner(HikariDataSource dataSource, StressTestConfig config) {
-        TransactionManager txManager = new TransactionManager(dataSource);
+        var txManager = new TransactionManager(dataSource);
 
         applyDbMigrations(dataSource);
         logger.info("DB migrations are applied");
@@ -57,13 +58,12 @@ public class StressTestRunner {
         logger.info("Buffer is initialized");
 
         List<AbstractReaderWriter> readersAndWriters = new ArrayList<>();
-        readersAndWriters.addAll(createReaders(buffer, config));
+        readersAndWriters.addAll(createReaders(buffer, txManager, config));
         readersAndWriters.addAll(createWriters(buffer, txManager, config));
-        Collections.shuffle(readersAndWriters);
         logger.info("Readers and writers are created");
 
-        LongTransactionKeeper longTxKeeper = new LongTransactionKeeper(txManager);
-        ExecutorService executorService = Executors.newCachedThreadPool();
+        var longTxKeeper = new LongTransactionKeeper(txManager);
+        ExecutorService executorService = Executors.newVirtualThreadPerTaskExecutor();
 
         try {
             submitRunnableInExecutorService(buffer, readersAndWriters, longTxKeeper, executorService, config);
@@ -90,25 +90,40 @@ public class StressTestRunner {
         txManager.commit();
     }
 
-    private static List<Reader> createReaders(PgQueueBuffer buffer, StressTestConfig config) {
+    private static List<Reader> createReaders(PgQueueBuffer buffer,
+                                              TransactionManager txManager,
+                                              StressTestConfig config) {
         List<Reader> readers = new ArrayList<>();
-        CyclicBarrier readerBarrier = new CyclicBarrier(config.readerCount);
+        var readerBarrier = new CyclicBarrier(config.readerCount);
         boolean syncCommitEnabled = buffer.isSyncCommitEnabled();
         for (int i = 0; i < config.readerCount; i++) {
-            Reader reader = new Reader(buffer, readerBarrier, config.readerInnerDelayMs, config.readerBatchSize,
-                    syncCommitEnabled, config.syncReplicaDelayMs);
+            var reader = new Reader(
+                    buffer,
+                    txManager,
+                    readerBarrier,
+                    config.readerInnerDelayMs,
+                    config.readerBatchSize,
+                    syncCommitEnabled,
+                    config.syncReplicaDelayMs
+            );
             readers.add(reader);
         }
         return readers;
     }
 
-    private static List<Writer> createWriters(PgQueueBuffer buffer, TransactionManager txManager,
+    private static List<Writer> createWriters(PgQueueBuffer buffer,
+                                              TransactionManager txManager,
                                               StressTestConfig config) {
         List<Writer> writers = new ArrayList<>();
-        CyclicBarrier writerBarrier = config.writerCount > 0 ? new CyclicBarrier(config.writerCount) : null;
+        var writerBarrier = config.writerCount > 0 ? new CyclicBarrier(config.writerCount) : null;
         for (int i = 0; i < config.writerCount; i++) {
-            Writer writer = new Writer(buffer, txManager, writerBarrier, config.writerInnerDelayMs,
-                    config.syncReplicaDelayMs);
+            var writer = new Writer(
+                    buffer,
+                    txManager,
+                    writerBarrier,
+                    config.writerInnerDelayMs,
+                    config.syncReplicaDelayMs
+            );
             writers.add(writer);
         }
         return writers;
@@ -167,54 +182,75 @@ public class StressTestRunner {
     }
 
     private static void report(PgQueueBuffer buffer, List<AbstractReaderWriter> readersAndWriters, long deltaMs) {
-        ReaderWriterStat readerWriterStat = getStatAndReset(readersAndWriters);
+        ReaderWriterStat readerWriterStat = getStatAndReset(readersAndWriters, deltaMs);
         Stat readerStat = readerWriterStat.readerStat;
         Stat writerStat = readerWriterStat.writerStat;
-
-        long size = buffer.size();
-
-        logger.info("write throughput {}, read throughput {}, size {} (avg overhead: write {}ms, read {}ms)",
-                throughputPerSec(writerStat.count, deltaMs), throughputPerSec(readerStat.count, deltaMs),
-                size, writerStat.avg, readerStat.avg);
+        logger.info("write throughput {}, read throughput {}, size {} " +
+                        "(avg overhead: write {}ms, read {}ms; log rate: write {}, read {})",
+                writerStat.count, readerStat.count,
+                buffer.size(),
+                writerStat.avg, readerStat.avg,
+                writerStat.logRate, readerStat.logRate
+        );
     }
 
-    private static ReaderWriterStat getStatAndReset(List<AbstractReaderWriter> readerWriters) {
+    private static ReaderWriterStat getStatAndReset(List<AbstractReaderWriter> readerWriters, long deltaMs) {
         long readerDeltaSum = 0;
         long readerCountSum = 0;
+        long readerLogCount = 0;
+        long readerCount = 0;
         long writerDeltaSum = 0;
         long writerCountSum = 0;
+        long writerLogCount = 0;
+        long writerCount = 0;
         for (AbstractReaderWriter readerWriter : readerWriters) {
             AbstractReaderWriter.Stat stat = readerWriter.getStatAndReset();
             if (readerWriter instanceof Reader) {
                 readerDeltaSum += stat.deltaSum();
                 readerCountSum += stat.countSum();
+                readerLogCount += stat.logCount();
+                readerCount += 1;
             } else {
                 writerDeltaSum += stat.deltaSum();
                 writerCountSum += stat.countSum();
+                writerLogCount += stat.logCount();
+                writerCount += 1;
             }
         }
         Stat readerStat;
         Stat writerStat;
         if (readerCountSum == 0) {
-            readerStat = new Stat(-1, -1);
+            readerStat = new Stat("-1", -1, "-1");
         } else {
-            readerStat = new Stat(readerDeltaSum / readerCountSum / 1_000_000, readerCountSum);
+            readerStat = new Stat(
+                    round(((double) readerDeltaSum) / readerCountSum / 1_000_000, 3),
+                    readerCountSum,
+                    round(normalizePerSec(((double) readerLogCount) / readerCount, deltaMs), 3)
+            );
         }
         if (writerCountSum == 0) {
-            writerStat = new Stat(-1, -1);
+            writerStat = new Stat("-1", -1, "-1");
         } else {
-            writerStat = new Stat(writerDeltaSum / writerCountSum / 1_000_000, writerCountSum);
+            writerStat = new Stat(
+                    round(((double) writerDeltaSum) / writerCountSum / 1_000_000, 3),
+                    writerCountSum,
+                    round(normalizePerSec(((double) writerLogCount) / writerCount, deltaMs), 3)
+            );
         }
         return new ReaderWriterStat(readerStat, writerStat);
     }
 
-    private static long throughputPerSec(long sum, long deltaMs) {
-        return sum * 1_000 / deltaMs;
+    private static String round(double value, int scale) {
+        return BigDecimal.valueOf(value).setScale(scale, RoundingMode.HALF_UP).toPlainString();
+    }
+
+    private static double normalizePerSec(double value, long deltaMs) {
+        return value * 1_000 / deltaMs;
     }
 
     private record ReaderWriterStat(Stat readerStat, Stat writerStat) {
     }
 
-    private record Stat(long avg, long count) {
+    private record Stat(String avg, long count, String logRate) {
     }
 }

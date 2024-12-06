@@ -14,10 +14,14 @@ public class Reader extends AbstractReaderWriter {
     private final int batchSize;
     private final int syncReplicaDelayMs;
 
-    public Reader(PgQueueBuffer buffer, CyclicBarrier barrier,
-                  int innerDelayMs, int batchSize,
-                  boolean syncCommitEnabled, int syncReplicaDelayMs) {
-        super("reader-" + counter, barrier);
+    public Reader(PgQueueBuffer buffer,
+                  TransactionManager txManager,
+                  CyclicBarrier barrier,
+                  int innerDelayMs,
+                  int batchSize,
+                  boolean syncCommitEnabled,
+                  int syncReplicaDelayMs) {
+        super("reader-" + counter, txManager, barrier);
 
         this.buffer = buffer;
 
@@ -34,9 +38,10 @@ public class Reader extends AbstractReaderWriter {
         long deltaNanos = Util.timed(() -> buffer.poll(batchSize, events -> {
             count[0] = events.size();
             Util.sleep(innerDelayMs);
+            if (count[0] == 0 && syncReplicaDelayMs > 0) {
+                Util.sleep(syncReplicaDelayMs); // compensate real delay missing
+            }
         }));
-        if (count[0] > 0) {
-            logStat(deltaNanos - (innerDelayMs + syncReplicaDelayMs) * 1_000_000L, count[0]);
-        }
+        logStat(deltaNanos - (innerDelayMs + syncReplicaDelayMs) * 1_000_000L, count[0]);
     }
 }

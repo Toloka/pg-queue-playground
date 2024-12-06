@@ -10,6 +10,7 @@ import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.testcontainers.containers.DockerComposeContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
@@ -22,26 +23,25 @@ class PgQueueBufferStressTest {
             new DockerComposeContainer<>(new File("docker-compose.yml"))
                     .withExposedService("pg-primary", 5432);
 
-    public static String host;
-    public static Integer port;
+    public static String host = "localhost";
+    public static Integer port = 5432;
 
     @BeforeAll
     public static void init() {
+        compose.waitingFor("pg-primary", Wait.forLogMessage(".*START_REPLICATION.*", 1));
         compose.start();
-        host = compose.getServiceHost("pg-primary", 5432);
-        port = compose.getServicePort("pg-primary", 5432);
     }
 
     @Test
     void test_PgQueueBuffer_1_SelectForUpdate() {
         StressTestConfig config = StressTestConfig.builder()
                 .setPgQueueBuffer(new PgQueueBuffer_1_SelectForUpdate())
-                .setWriterCount(70)
-                .setWriterInnerDelayMs(10)
-                .setReaderCount(5)
-                .setReaderInnerDelayMs(50)
-                .setReaderBatchSize(40)
-                .setDurationSec(300)
+                .setWriterCount(175)
+                .setWriterInnerDelayMs(20)
+                .setReaderCount(20)
+                .setReaderInnerDelayMs(10)
+                .setReaderBatchSize(10)
+                .setDurationSec(60)
                 .setLongTxEnabled(true)
                 .setHost(host)
                 .setPort(port)
@@ -54,12 +54,12 @@ class PgQueueBufferStressTest {
     void test_PgQueueBuffer_2_SelectForUpdateSkipLocked() {
         StressTestConfig config = StressTestConfig.builder()
                 .setPgQueueBuffer(new PgQueueBuffer_2_SelectForUpdateSkipLocked())
-                .setWriterCount(70)
-                .setWriterInnerDelayMs(10)
-                .setReaderCount(5)
-                .setReaderInnerDelayMs(50)
-                .setReaderBatchSize(40)
-                .setDurationSec(300)
+                .setWriterCount(175)
+                .setWriterInnerDelayMs(20)
+                .setReaderCount(20)
+                .setReaderInnerDelayMs(10)
+                .setReaderBatchSize(10)
+                .setDurationSec(60)
                 .setLongTxEnabled(true)
                 .setHost(host)
                 .setPort(port)
@@ -72,12 +72,12 @@ class PgQueueBufferStressTest {
     void test_PgQueueBuffer_3_SelectForUpdateSkipLockedWhereId() {
         StressTestConfig config = StressTestConfig.builder()
                 .setPgQueueBuffer(new PgQueueBuffer_3_SelectForUpdateSkipLockedWhereId(10))
-                .setWriterCount(70)
-                .setWriterInnerDelayMs(10)
-                .setReaderCount(5)
-                .setReaderInnerDelayMs(50)
-                .setReaderBatchSize(40)
-                .setDurationSec(300)
+                .setWriterCount(175)
+                .setWriterInnerDelayMs(20)
+                .setReaderCount(20)
+                .setReaderInnerDelayMs(10)
+                .setReaderBatchSize(10)
+                .setDurationSec(60)
                 .setLongTxEnabled(true)
                 .setHost(host)
                 .setPort(port)
@@ -90,12 +90,12 @@ class PgQueueBufferStressTest {
     void test_PgQueueBuffer_4_SelectForUpdateSkipLockedWhereIdSyncCommitOff() {
         StressTestConfig config = StressTestConfig.builder()
                 .setPgQueueBuffer(new PgQueueBuffer_4_SelectForUpdateSkipLockedWhereIdSyncCommitOff(10))
-                .setWriterCount(70)
-                .setWriterInnerDelayMs(10)
-                .setReaderCount(5)
-                .setReaderInnerDelayMs(50)
-                .setReaderBatchSize(40)
-                .setDurationSec(300)
+                .setWriterCount(175)
+                .setWriterInnerDelayMs(20)
+                .setReaderCount(20)
+                .setReaderInnerDelayMs(10)
+                .setReaderBatchSize(10)
+                .setDurationSec(60)
                 .setLongTxEnabled(true)
                 .setHost(host)
                 .setPort(port)
@@ -109,12 +109,12 @@ class PgQueueBufferStressTest {
         StressTestConfig config = StressTestConfig.builder()
                 .setPgQueueBuffer(new PgQueueBuffer_5_SelectForUpdateSkipLockedWhereIdSyncCommitOffAndTruncate(
                         10, 3, 10))
-                .setWriterCount(70)
-                .setWriterInnerDelayMs(10)
-                .setReaderCount(5)
-                .setReaderInnerDelayMs(50)
-                .setReaderBatchSize(40)
-                .setDurationSec(300)
+                .setWriterCount(175)
+                .setWriterInnerDelayMs(20)
+                .setReaderCount(20)
+                .setReaderInnerDelayMs(10)
+                .setReaderBatchSize(10)
+                .setDurationSec(60)
                 .setLongTxEnabled(true)
                 .setHost(host)
                 .setPort(port)
