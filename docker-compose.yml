@@ -1,7 +1,7 @@
 services:
 
   pg-primary:
-    image: bitnami/postgresql:latest
+    image: bitnamilegacy/postgresql:latest
     ports:
       - 5432:5432
     depends_on:
@@ -18,7 +18,7 @@ services:
       - POSTGRESQL_NUM_SYNCHRONOUS_REPLICAS=1
 
   pg-sync-replica:
-    image: bitnami/postgresql:latest
+    image: bitnamilegacy/postgresql:latest
     ports:
       - 6543:5432
     volumes:

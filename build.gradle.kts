@@ -12,18 +12,19 @@ repositories {
 }
 
 dependencies {
-    implementation("org.apache.logging.log4j:log4j-api:2.24.2")
-    implementation("org.apache.logging.log4j:log4j-core:2.24.2")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.24.2")
+    implementation("org.apache.logging.log4j:log4j-api:2.25.1")
+    implementation("org.apache.logging.log4j:log4j-core:2.25.1")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.25.1")
 
-    runtimeOnly("org.postgresql:postgresql:42.7.4")
-    implementation("org.flywaydb:flyway-core:11.0.1")
-    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.0.1")
-    implementation("com.zaxxer:HikariCP:6.2.1")
+    runtimeOnly("org.postgresql:postgresql:42.7.7")
+    implementation("org.flywaydb:flyway-core:11.13.0")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql:11.13.0")
+    implementation("com.zaxxer:HikariCP:7.0.2")
 
-    testImplementation("org.junit.jupiter:junit-jupiter:5.11.3")
-    testImplementation("org.testcontainers:testcontainers:1.20.4")
-    testImplementation("org.testcontainers:junit-jupiter:1.20.4")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.13.4")
+    testImplementation("org.testcontainers:testcontainers:1.21.3")
+    testImplementation("org.testcontainers:junit-jupiter:1.21.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:1.13.4")
 }
 
 application {
