@@ -12,9 +12,9 @@ repositories {
 }
 
 dependencies {
-    implementation("org.apache.logging.log4j:log4j-api:2.25.1")
-    implementation("org.apache.logging.log4j:log4j-core:2.25.1")
-    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.25.1")
+    implementation("org.apache.logging.log4j:log4j-api:2.25.3")
+    implementation("org.apache.logging.log4j:log4j-core:2.25.3")
+    implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.25.3")
 
     runtimeOnly("org.postgresql:postgresql:42.7.7")
     implementation("org.flywaydb:flyway-core:11.13.0")
